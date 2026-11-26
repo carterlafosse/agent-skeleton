@@ -25,6 +25,9 @@ I added the two items and marked "Pay rent" as done. Your list now looks like th
 3. ⬜ buy milk
 4. ⬜ call the dentist
 ```
+Notice two things in that run:
+- **Step 1 has three tool calls.** The model can request several tools at once, and the loop runs them all.
+- **Step 2 depends on step 1.** The model couldn't complete "Pay rent" until it had listed the items to find its ID. Chapter 01 can't do that.
 
 ## The loop
 
@@ -66,7 +69,7 @@ I added the two items and marked "Pay rent" as done. Your list now looks like th
 
 - Change the task at the bottom of `agent_loop.py`.
 - Add tools in `shared/tools.py` with `@tool(...)`. The loop picks them up automatically.
-- Import `run_agent` into your own scripts and call it with any task.
+- Copy `run_agent()` into your own project. It only needs `shared/llm.py` and `shared/tools.py`.
 
 ## Limitation
 

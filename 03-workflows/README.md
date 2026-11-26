@@ -18,6 +18,9 @@ python 03-workflows/evaluator_optimizer.py
 ### Chaining: `chaining.py`
 ```
 topic ──▶ outline ──▶ draft ──▶ edit ──▶ final
+                                 │  ▲
+                                 ▼  │
+                            too long? retry
 ```
 Each step's output is the next step's input. Use it when a task splits naturally into stages.
 
@@ -29,7 +32,7 @@ The edit step also checks the word count in Python and retries if it's over. Rul
 message ──▶ classify ─┼─▶ complaint prompt ─┼─▶ reply
                       └─▶ feedback prompt  ─┘
 ```
-One cheap call picks a category, then your code chooses the specialised prompt. Use it when inputs need different handling.
+One cheap call picks a category, then your code chooses the specialised prompt. Use it when inputs need different handling. A shared system prompt sets the role and rules for every reply (no placeholders, keep it short), so each route's prompt only covers what's different.
 
 ### Parallelisation: `parallel.py`
 ```
@@ -68,6 +71,6 @@ You can also mix them: a workflow where one step hands off to the Chapter 02 age
 
 ## Make it yours
 
-Every file has its example input at the bottom (`if __name__ == "__main__":`), and the parts meant to be changed are labelled in the comments: the routes, reviewers and criteria.
+Every file has its example input at the bottom (`if __name__ == "__main__":`), and the comments point out what to change: the routes, reviewers and criteria.
 
 ➡️ **Next: [04 — Multi-agent](../04-multi-agent/)**
