@@ -10,14 +10,17 @@ No loop yet. This chapter does exactly one round trip.
 python 01-single-call/single_call.py
 ```
 
-Expected output:
+Expected output (wording varies slightly each run):
 
 ```
 stop_reason: tool_use
 Model asked for: list_todos({})
 
 Final answer:
-You have 2 items: Pay rent and Book flights, both not done yet.
+You have two items on your to-do list, and neither is done yet:
+
+1. Pay rent
+2. Book flights
 ```
 
 ## What happens
