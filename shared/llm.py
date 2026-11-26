@@ -49,3 +49,18 @@ def llm(messages, tools=None, system=None, max_tokens=1024):
     # Returns the raw response object. Chapters read .stop_reason and
     # .content from it directly so you can see exactly what the API returns.
     return client.messages.create(**kwargs)
+
+
+def ask(prompt, system=None, max_tokens=1024):
+    """
+    Shortcut for workflows: send one prompt, get back plain text.
+
+    Workflow steps don't use tools or keep a conversation going, so they
+    don't need the full response object. Each step is a fresh, single
+    question, which keeps steps independent and easy to debug.
+    """
+    resp = llm([{"role": "user", "content": prompt}],
+               system=system, max_tokens=max_tokens)
+    # Join the text blocks and trim stray whitespace so the result can be
+    # compared or passed straight into the next step.
+    return "".join(b.text for b in resp.content if b.type == "text").strip()

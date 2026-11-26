@@ -8,7 +8,7 @@ A barebones, copy-paste skeleton for building AI agents and workflows from scrat
 |---|---|
 | [01](01-single-call/) | Single tool call |
 | [02](02-agent-loop/) | Agent loop |
-| 03 | Workflows *(coming soon)* |
+| [03](03-workflows/) | Workflows |
 | 04 | Multi-agent *(coming soon)* |
 | 05 | Visualizer *(coming soon)* |
 
