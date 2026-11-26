@@ -10,38 +10,7 @@ The workers share the to-do tools from `shared/tools.py`, so each adds items for
 python 04-multi-agent/lead.py
 ```
 
-Example output (trimmed; the lead plans differently each run):
-
-```
-Goal: Get me organised for moving apartments next month.
-
-Task board:
-  1. [pending] Logistics and movers
-  2. [pending] Packing and decluttering
-  3. [pending] Admin and address changes
-  4. [pending] New apartment preparation
-
-[worker-1] starting: Logistics and movers
-  [worker-1] list_todos({})
-  [worker-1] add_todo({'text': 'Get at least 3 written quotes from movers'})
-  [worker-1] add_todo({'text': 'Book move date and mover; get confirmation in writing'})
-  ...
-
-[worker-3] starting: Admin and address changes
-  [worker-3] add_todo({'text': 'Give written notice to current landlord'})
-  [worker-3] add_todo({'text': 'Set up utilities and internet at new place'})
-  ...
-
-Task board:
-  1. [done] Logistics and movers
-  ...
-
-=== Lead summary ===
-The team built a moving to-do list (nothing is booked yet; there are no
-booking tools). Your list now has 23 items across logistics, packing,
-admin, and new-apartment prep. Start with getting quotes and booking the
-move date, since most other tasks depend on it.
-```
+You'll see the lead's task board, each worker's tool calls as it works, the finished board, and the lead's summary.
 
 ## How it works
 
@@ -75,7 +44,7 @@ move date, since most other tasks depend on it.
 - **Workers know nothing you don't tell them.** They can't see the lead's conversation, so the prompt must include the overall goal and a clear scope ("do ONLY your task").
 - **The lead is a workflow, the workers are agents.** Planning and combining are fixed steps (Chapter 03). Each worker decides its own steps (Chapter 02). Most real systems mix both like this.
 - **Plans need a fallback.** If the lead's JSON can't be parsed, one worker does the whole goal instead of crashing.
-- **Shared data needs care.** Workers run one after another here. Running them at the same time is faster, but two workers changing the same data at once can clash.
+- **Shared data needs care.** By default workers take turns. With `run_team(goal, parallel=True)` they all run at once, which is faster, so `run_tool()` uses a lock to stop two workers changing the to-do list at the same moment.
 
 ## Cost
 
@@ -85,6 +54,6 @@ Every worker is its own agent loop, so a team uses several times more API calls 
 
 - Change the goal at the bottom of `lead.py`.
 - Give workers different tools or system prompts for different roles (e.g. a researcher and a writer).
-- Swap the `for` loop in `run_team()` for a thread pool to run workers at the same time.
+- Pass `parallel=True` to `run_team()` to run every worker at the same time.
 
 ➡️ **Next: [05 — Visualizer](../05-visualizer/)**: watch the team work as a live graph.

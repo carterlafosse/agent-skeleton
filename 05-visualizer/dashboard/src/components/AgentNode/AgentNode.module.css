@@ -1,0 +1,270 @@
+/* ---- Base box ---- */
+
+.node {
+  width: 250px;
+  box-sizing: border-box;
+  padding: 13px 15px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+  animation: enter 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  transition: border-color 0.3s, box-shadow 0.3s, opacity 0.3s;
+}
+
+.selected {
+  outline: 2px solid var(--working);
+  outline-offset: 3px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.title {
+  font-weight: 650;
+  font-size: 14px;
+}
+
+.badge {
+  margin-left: auto;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #0b0e12;
+  color: var(--muted);
+  font-family: 'JetBrains Mono', Consolas, monospace;
+}
+
+.subtitle {
+  margin: 7px 0 0;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* Hide the connection dots; edges still attach to them. */
+.handle {
+  opacity: 0;
+}
+
+/* ---- Live activity line ---- */
+
+.activity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: #0b0e12;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  animation: fadeUp 0.35s ease;
+}
+
+.activityText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity.thinking {
+  color: var(--working);
+}
+.activity.tool {
+  color: var(--tool);
+}
+.activity.result {
+  color: #c9d3dd;
+}
+.activity.done {
+  color: var(--done);
+}
+.activity.info {
+  color: var(--muted);
+}
+
+/* ---- Tool chips ---- */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 9px;
+}
+
+.chip {
+  font-size: 10.5px;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(180, 140, 255, 0.12);
+  color: var(--tool);
+  animation: pop 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+}
+
+/* ---- Status icons ---- */
+
+.spinner {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid rgba(76, 154, 255, 0.25);
+  border-top-color: var(--working);
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+.tick {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--done);
+  color: #0b1a0f;
+  animation: pop 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.6);
+  flex-shrink: 0;
+}
+
+.ring {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid #4a5566;
+  flex-shrink: 0;
+}
+
+/* ---- Thinking dots ---- */
+
+.dots {
+  display: inline-flex;
+  gap: 3px;
+}
+.dots span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: bounce 1s ease-in-out infinite;
+}
+.dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* ---- Status styles ---- */
+
+.pending {
+  opacity: 0.75;
+}
+
+.working {
+  opacity: 1;
+  border-color: #2c5a9a;
+  animation: enter 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2), glow 2s ease-in-out infinite;
+}
+
+.done {
+  border-color: #2a5a35;
+}
+
+/* ---- Variants ---- */
+
+.boss {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+.boss .subtitle {
+  color: #3b4553;
+}
+
+.lead {
+  border-width: 1.5px;
+}
+
+.tools {
+  border-style: dashed;
+  border-color: #4a3a6b;
+}
+.tools.working {
+  border-color: var(--tool);
+  animation: glowTool 1.4s ease-out;
+}
+
+.flash {
+  animation: flash 0.6s ease-out;
+}
+
+/* ---- Keyframes ---- */
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: scale(0.85) translateY(10px);
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  40% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+@keyframes glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(76, 154, 255, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 22px 2px rgba(76, 154, 255, 0.35);
+  }
+}
+
+@keyframes glowTool {
+  from {
+    box-shadow: 0 0 26px 4px rgba(180, 140, 255, 0.5);
+  }
+}
+
+@keyframes flash {
+  from {
+    filter: brightness(1.6);
+  }
+}

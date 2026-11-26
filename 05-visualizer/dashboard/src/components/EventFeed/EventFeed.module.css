@@ -1,0 +1,61 @@
+.empty {
+  margin: 0;
+  padding: 18px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  font-size: 12px;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 16px;
+  border-bottom: 1px solid rgba(38, 46, 58, 0.5);
+  color: #c9d3dd;
+  animation: slideIn 0.3s ease;
+}
+
+.time {
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.text {
+  word-break: break-word;
+  line-height: 1.45;
+}
+
+/* Colour per event type. */
+.agent_thinking,
+.lead_status {
+  color: #6f7c8b;
+}
+.tool_call {
+  color: var(--tool);
+}
+.task_started {
+  color: var(--working);
+}
+.task_done,
+.run_done {
+  color: var(--done);
+}
+.run_started,
+.task_added {
+  color: #f0a43a;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+}

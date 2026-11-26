@@ -1,0 +1,84 @@
+.toast {
+  position: fixed;
+  top: 68px;
+  right: 18px;
+  z-index: 30;
+  width: 320px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 12px 14px 14px;
+  border-radius: 12px;
+  border: 1px solid #2a5a35;
+  background: var(--card);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  animation: popIn 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+
+.icon {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--done);
+  color: #0b1a0f;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-size: 14px;
+}
+
+.message {
+  margin: 3px 0 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.action {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 7px;
+  border: none;
+  background: var(--done);
+  color: #0b1a0f;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.action:hover {
+  filter: brightness(1.1);
+}
+
+.close {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.close:hover {
+  background: #1f2632;
+  color: var(--text);
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.96);
+  }
+}

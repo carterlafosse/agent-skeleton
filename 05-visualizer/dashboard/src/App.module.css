@@ -1,0 +1,168 @@
+/* Page layout: slim header on top, graph filling the rest, optional sidebar. */
+
+.app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ---- Header ---- */
+
+.header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 18px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  z-index: 10;
+}
+
+.title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.live,
+.offline {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.live {
+  color: var(--done);
+  background: rgba(63, 185, 80, 0.12);
+}
+
+.offline {
+  color: var(--error);
+  background: rgba(255, 138, 128, 0.12);
+}
+
+.liveDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: blink 1.6s ease-in-out infinite;
+}
+
+/* The goal shrinks and truncates so the controls always fit. */
+.goal {
+  flex: 1;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 13.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.stat {
+  font-size: 12.5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--card);
+  color: #c9d3dd;
+  white-space: nowrap;
+}
+
+.timer {
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  font-size: 13px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: #0b0e12;
+  border: 1px solid var(--border);
+}
+
+.button,
+.select {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.button:hover:not(:disabled),
+.select:hover {
+  background: #1f2632;
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.speed {
+  display: flex;
+}
+
+.select {
+  padding: 0 8px;
+}
+
+/* Visible to screen readers only. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.progressTrack {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 3px;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--working), var(--done));
+  transition: width 0.6s ease;
+}
+
+/* ---- Body ---- */
+
+.body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.graph {
+  flex: 1;
+  min-width: 0;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.35;
+  }
+}

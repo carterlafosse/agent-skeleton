@@ -15,10 +15,12 @@ Run from the project root:
 
 import sys, json
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from shared.llm import ask
 from shared.tools import list_todos
+from shared.emit import emit   # feeds the Chapter 05 visualizer; does nothing if it's off
 from task_list import TASKS, add_task, start_task, complete_task, show_tasks
 from worker import run_worker
 
@@ -42,8 +44,15 @@ def plan(goal):
         return [goal]
 
 
-def run_team(goal):
+def run_team(goal, parallel=False):
+    """
+    goal      what you want the team to do
+    parallel  False: workers take turns (easier to follow in the terminal).
+              True: all workers run at the same time (faster, and much more
+              fun to watch in the Chapter 05 visualizer).
+    """
     print(f"Goal: {goal}")
+    emit("run_started", goal=goal)
 
     # --- 1. Plan: the lead breaks the goal into tasks --------------------------
     for description in plan(goal):
@@ -51,23 +60,35 @@ def run_team(goal):
     show_tasks()
 
     # --- 2. Delegate: one worker per task ---------------------------------------
-    # Workers run one after another to keep this simple. They could run at the
-    # same time (like parallel.py in Chapter 03), but then two workers editing
-    # the same shared data at once can clash, which needs extra care.
-    for task in TASKS:
+    emit("lead_status", status="delegating")
+
+    def work(task):
         name = f"worker-{task['id']}"
         print(f"\n[{name}] starting: {task['description']}")
-        start_task(task["id"])
+        start_task(task["id"], name)
         summary = run_worker(name, goal, task["description"])
-        complete_task(task["id"], summary)
+        complete_task(task["id"], name, summary)
+
+    if parallel:
+        # Same thread-pool idea as parallel.py in Chapter 03. Workers share the
+        # to-do list, so run_tool() uses a lock to stop them clashing.
+        # Printed output will interleave, which is expected.
+        with ThreadPoolExecutor() as pool:
+            list(pool.map(work, TASKS))
+    else:
+        for task in TASKS:
+            work(task)
     show_tasks()
 
     # --- 3. Combine: the lead turns the results into one answer -----------------
+    emit("lead_status", status="summarising")
     results = "\n".join(f"- {t['description']}: {t['result']}" for t in TASKS)
-    return ask("You are the team lead. Your workers finished these tasks:\n"
-               f"{results}\n\nCurrent to-do list:\n{json.dumps(list_todos())}\n\n"
-               "Write a short summary for the user: what the team did and "
-               "what's on their list now.")
+    final = ask("You are the team lead. Your workers finished these tasks:\n"
+                f"{results}\n\nCurrent to-do list:\n{json.dumps(list_todos())}\n\n"
+                "Write a short summary for the user: what the team did and "
+                "what's on their list now.")
+    emit("run_done", summary=final)
+    return final
 
 
 if __name__ == "__main__":

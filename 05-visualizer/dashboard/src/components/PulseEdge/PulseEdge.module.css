@@ -1,0 +1,35 @@
+.line {
+  stroke-width: 1.5;
+  transition: stroke 0.4s, stroke-width 0.4s;
+}
+
+.idle {
+  stroke: #2a323e;
+}
+
+.flow {
+  stroke: #2c5a9a;
+  stroke-width: 2;
+}
+
+.burst {
+  stroke: #6b4fa8;
+  stroke-width: 2;
+}
+
+.done {
+  stroke: #2a5a35;
+  stroke-width: 2;
+}
+
+.particle {
+  fill: var(--working);
+  filter: drop-shadow(0 0 4px var(--working));
+}
+
+/* The burst circle reuses the .burst name but needs a fill, not a stroke. */
+circle.burst {
+  fill: var(--tool);
+  stroke: none;
+  filter: drop-shadow(0 0 6px var(--tool));
+}

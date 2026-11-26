@@ -1,0 +1,37 @@
+/* Global styles and colour variables shared by every component. */
+
+:root {
+  --bg: #0b0e13;
+  --panel: #11151b;
+  --card: #161b23;
+  --border: #262e3a;
+  --text: #e6edf3;
+  --muted: #9ba7b4;
+  --working: #4c9aff;
+  --tool: #b48cff;
+  --done: #3fb950;
+  --error: #ff8a80;
+
+  font-family: Inter, system-ui, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+}
+
+code,
+pre {
+  font-family: 'JetBrains Mono', Consolas, monospace;
+}
+
+/* Dark theme for React Flow's zoom controls. */
+.react-flow__controls-button {
+  background: var(--card);
+  border-bottom-color: var(--border);
+  fill: var(--text);
+}
+.react-flow__controls-button:hover {
+  background: #1f2632;
+}

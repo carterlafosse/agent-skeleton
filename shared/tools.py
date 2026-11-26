@@ -8,6 +8,8 @@ The file has two halves:
      own tools once you've seen how they work.
 """
 
+import threading
+
 # Everything the model sees about your tools: name, description, inputs.
 # This list is sent with every request.
 TOOLS = []
@@ -15,6 +17,9 @@ TOOLS = []
 # Maps each tool name to the Python function that actually runs it.
 # The model never sees this; it's how run_tool() finds the right code.
 HANDLERS = {}
+
+# Used by run_tool() so only one tool runs at a time (see below).
+_lock = threading.Lock()
 
 
 def tool(name, description, properties, required=None):
@@ -51,9 +56,14 @@ def run_tool(name, args):
     """
     if name not in HANDLERS:
         return f"Unknown tool: {name}"
-    # **args unpacks the model's inputs into named arguments,
-    # e.g. {"item_id": 1} becomes complete_todo(item_id=1).
-    return HANDLERS[name](**args)
+    # Several workers can call tools at the same time (Chapter 04's parallel
+    # mode). The lock lets only one tool run at once, so shared data like the
+    # to-do list can't get mixed up. Simple and safe; very slow tools would
+    # need a finer-grained approach.
+    with _lock:
+        # **args unpacks the model's inputs into named arguments,
+        # e.g. {"item_id": 1} becomes complete_todo(item_id=1).
+        return HANDLERS[name](**args)
 
 
 # =============================================================================

@@ -1,0 +1,257 @@
+/*
+ * useAgentEvents
+ *
+ * Connects to the visualizer server and turns the stream of events into one
+ * state object the dashboard can draw: the lead's status, each task with its
+ * worker's live activity and history, tool-call counts, and the summary.
+ *
+ * It also records every event of the latest run, so the whole run can be
+ * replayed afterwards at any speed.
+ *
+ * Reconnects automatically, so you can start the server after the dashboard.
+ */
+
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+
+const SERVER_URL = 'ws://localhost:4000';
+
+// Long pauses (e.g. the lead planning) are capped during replay so you
+// aren't left watching nothing happen.
+const MAX_REPLAY_GAP_MS = 3000;
+
+const initialState = {
+  connected: false,
+  goal: null,
+  leadStatus: 'idle',  // idle | planning | delegating | summarising | done
+  tasks: {},           // task_id -> task (see newTask below)
+  events: [],          // newest first, capped at 150
+  summary: null,
+  clock: null,         // run timer: { base, at, scale } (see elapsedMs below)
+  toolCount: 0,        // tool calls across the whole team
+  lastTool: null,      // { agent, label, at } for the Tools node
+};
+
+// ---- Helpers ----
+
+// Short, readable version of tool arguments: {"text": "Book movers"} -> "Book movers"
+function shortArgs(args) {
+  const text = Object.values(args ?? {}).map((v) => (typeof v === 'string' ? v : JSON.stringify(v))).join(', ');
+  return text.length > 42 ? `${text.slice(0, 42)}…` : text;
+}
+
+function newTask(event) {
+  return {
+    id: event.task_id,
+    description: event.description,
+    status: 'pending',   // pending | working | done
+    agent: null,
+    steps: 0,
+    activity: null,      // what it's doing right now: { kind, text }
+    log: [],             // full history for the worker panel
+    toolCalls: 0,
+    lastToolAt: 0,
+    result: null,
+  };
+}
+
+// Find the task an agent is working on (tool events are reported by agent name).
+const taskForAgent = (state, agent) => Object.values(state.tasks).find((t) => t.agent === agent);
+
+// Update one task, adding an entry to its activity log at the same time.
+function patchTask(state, taskId, changes, logEntry) {
+  const task = state.tasks[taskId];
+  if (!task) return state.tasks;
+  const log = logEntry ? [...task.log, logEntry] : task.log;
+  return { ...state.tasks, [taskId]: { ...task, ...changes, log } };
+}
+
+// The run timer is stored as "base ms, plus time since `at`, times `scale`".
+// Live runs tick at 1x; replays tick at the chosen speed; `at: null` = stopped.
+export function elapsedMs(clock, now) {
+  if (!clock) return 0;
+  return clock.at === null ? clock.base : clock.base + (now - clock.at) * clock.scale;
+}
+
+function nextClock(state, event, at) {
+  if (event._replay) {
+    // Replayed events carry their original elapsed time and the playback speed.
+    return event.type === 'run_done'
+      ? { base: event._elapsed, at: null, scale: 1 }
+      : { base: event._elapsed, at: Date.now(), scale: event._speed };
+  }
+  if (event.type === 'run_started') return { base: 0, at, scale: 1 };
+  if (event.type === 'run_done') return { base: elapsedMs(state.clock, at), at: null, scale: 1 };
+  return state.clock;
+}
+
+// ---- Reducer: every event goes through here and returns the new state ----
+
+function reducer(state, event) {
+  if (event.type === '_connected') return { ...state, connected: true };
+  if (event.type === '_disconnected') return { ...state, connected: false };
+
+  const at = event.ts * 1000;
+  const events = [event, ...state.events].slice(0, 150);
+  const clock = nextClock(state, event, at);
+
+  switch (event.type) {
+    case 'run_started':
+      return { ...initialState, connected: state.connected, goal: event.goal,
+               leadStatus: 'planning', clock, events: [event] };
+
+    case 'lead_status':
+      return { ...state, events, clock, leadStatus: event.status };
+
+    case 'task_added':
+      return { ...state, events, clock, tasks: { ...state.tasks, [event.task_id]: newTask(event) } };
+
+    case 'task_started':
+      return { ...state, events, clock, tasks: patchTask(state, event.task_id,
+        { status: 'working', agent: event.agent, activity: { kind: 'thinking', text: 'Reading the task' } },
+        { kind: 'start', text: 'Started', at }) };
+
+    case 'agent_thinking': {
+      const task = taskForAgent(state, event.agent);
+      if (!task) return { ...state, events, clock };
+      return { ...state, events, clock, tasks: patchTask(state, task.id,
+        { steps: event.step, activity: { kind: 'thinking', text: `Thinking · step ${event.step}` } },
+        { kind: 'thinking', text: `Thinking (step ${event.step})`, at }) };
+    }
+
+    case 'tool_call': {
+      const task = taskForAgent(state, event.agent);
+      if (!task) return { ...state, events, clock };
+      const label = `${event.tool}(${shortArgs(event.args)})`;
+      return {
+        ...state,
+        events,
+        clock,
+        toolCount: state.toolCount + 1,
+        lastTool: { agent: event.agent, label, at },
+        tasks: patchTask(state, task.id,
+          { toolCalls: task.toolCalls + 1, lastToolAt: at, activity: { kind: 'tool', text: label } },
+          { kind: 'tool', text: label, tool: event.tool, at }),
+      };
+    }
+
+    case 'tool_result': {
+      const task = taskForAgent(state, event.agent);
+      if (!task) return { ...state, events, clock };
+      return { ...state, events, clock, tasks: patchTask(state, task.id,
+        { activity: { kind: 'result', text: event.preview } },
+        { kind: 'result', text: event.preview, at }) };
+    }
+
+    case 'task_done':
+      return { ...state, events, clock, tasks: patchTask(state, event.task_id,
+        { status: 'done', result: event.result, activity: { kind: 'done', text: 'Finished' } },
+        { kind: 'done', text: 'Finished', at }) };
+
+    case 'run_done':
+      return { ...state, events, clock, summary: event.summary, leadStatus: 'done' };
+
+    default:
+      return { ...state, events, clock };
+  }
+}
+
+// A sleep that can be cut short (used by "Skip to end").
+function sleep(ms, token) {
+  return new Promise((resolve) => {
+    token.wake = resolve;
+    setTimeout(resolve, ms);
+  });
+}
+
+export default function useAgentEvents(speed = 1) {
+  const [state, dispatch] = useReducer(reducer, initialState);
+  const [replaying, setReplaying] = useState(false);
+  const [canReplay, setCanReplay] = useState(false);
+
+  const runLog = useRef([]);        // every event of the latest run, in order
+  const speedRef = useRef(speed);   // read at each step, so speed changes apply mid-replay
+  const replayToken = useRef(null); // lets a running replay be skipped or cancelled
+
+  useEffect(() => {
+    speedRef.current = speed;
+  }, [speed]);
+
+  // ---- Live connection ----
+  useEffect(() => {
+    let socket;
+    let retryTimer;
+    let stopped = false;
+
+    function connect() {
+      socket = new WebSocket(SERVER_URL);
+      socket.onopen = () => dispatch({ type: '_connected' });
+      socket.onmessage = (msg) => {
+        const event = JSON.parse(msg.data);
+
+        // Record the run for replays. A new run cancels any replay in progress.
+        if (event.type === 'run_started') {
+          runLog.current = [event];
+          if (replayToken.current) replayToken.current.cancelled = true;
+          setReplaying(false);
+          setCanReplay(false);
+        } else {
+          runLog.current.push(event);
+        }
+        if (event.type === 'run_done') setCanReplay(true);
+
+        dispatch(event);
+      };
+      socket.onclose = () => {
+        dispatch({ type: '_disconnected' });
+        if (!stopped) retryTimer = setTimeout(connect, 2000);
+      };
+    }
+
+    connect();
+
+    return () => {
+      stopped = true;
+      clearTimeout(retryTimer);
+      socket?.close();
+    };
+  }, []);
+
+  // ---- Replay: feed the recorded events back in with their original gaps ----
+  const replay = useCallback(async () => {
+    const log = runLog.current;
+    if (!log.length) return;
+
+    const token = { cancelled: false, skip: false, wake: null };
+    replayToken.current = token;
+    setReplaying(true);
+
+    const start = log[0].ts;
+    for (let i = 0; i < log.length; i++) {
+      if (i > 0 && !token.skip) {
+        const gap = Math.min((log[i].ts - log[i - 1].ts) * 1000, MAX_REPLAY_GAP_MS);
+        await sleep(gap / speedRef.current, token);
+      }
+      if (token.cancelled) return;
+
+      dispatch({
+        ...log[i],
+        ts: Date.now() / 1000,             // "now", so pulses and bursts animate
+        origTs: log[i].ts,                 // original time, for the event list
+        _replay: true,
+        _elapsed: (log[i].ts - start) * 1000,
+        _speed: speedRef.current,
+      });
+    }
+    if (replayToken.current === token) setReplaying(false);
+  }, []);
+
+  // Jump straight to the end of a replay.
+  const skipReplay = useCallback(() => {
+    const token = replayToken.current;
+    if (!token) return;
+    token.skip = true;
+    token.wake?.();
+  }, []);
+
+  return { ...state, replay, skipReplay, replaying, canReplay };
+}
