@@ -1,0 +1,6 @@
+# Install everything with:  pip install -r requirements.txt
+# (activate your .venv first so packages stay inside this project)
+
+anthropic        # official SDK for calling the model
+python-dotenv    # loads your API key from the .env file
+requests         # used later by shared/emit.py to send events to the visualizer
