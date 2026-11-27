@@ -75,7 +75,7 @@ Set `PROVIDER=` in `.env` and add that provider's key. Every chapter works with 
 | `gemini` | Google Gemini | `GEMINI_API_KEY` |
 | `deepseek` | DeepSeek | `DEEPSEEK_API_KEY` |
 | `grok` | xAI Grok | `XAI_API_KEY` |
-| `github` | GitHub Models (free tier; closest to a Copilot API) | `GITHUB_TOKEN` |
+| `github` | GitHub Models (free tier with a GitHub token) | `GITHUB_TOKEN` |
 | `openrouter` | Hundreds of models with one key | `OPENROUTER_API_KEY` |
 | `ollama` | Models running on your own computer | none |
 
