@@ -1,0 +1,301 @@
+[
+  {
+    "type": "run_started",
+    "ts": 1795754805.9850445,
+    "goal": "I've already paid rent and booked my flights, so mark both of those as done. Then add a short checklist for packing for a weekend trip."
+  },
+  {
+    "type": "task_added",
+    "ts": 1795754807.405208,
+    "task_id": 1,
+    "description": "Mark rent payment as done"
+  },
+  {
+    "type": "task_added",
+    "ts": 1795754807.4082117,
+    "task_id": 2,
+    "description": "Mark flight booking as done"
+  },
+  {
+    "type": "task_added",
+    "ts": 1795754807.4282186,
+    "task_id": 3,
+    "description": "Draft weekend trip packing checklist"
+  },
+  {
+    "type": "lead_status",
+    "ts": 1795754807.4332209,
+    "status": "delegating"
+  },
+  {
+    "type": "task_started",
+    "ts": 1795754807.4382224,
+    "task_id": 1,
+    "agent": "worker-1"
+  },
+  {
+    "type": "task_started",
+    "ts": 1795754807.4382224,
+    "task_id": 2,
+    "agent": "worker-2"
+  },
+  {
+    "type": "task_started",
+    "ts": 1795754807.440222,
+    "task_id": 3,
+    "agent": "worker-3"
+  },
+  {
+    "type": "agent_thinking",
+    "ts": 1795754807.4452217,
+    "agent": "worker-1",
+    "step": 1
+  },
+  {
+    "type": "agent_thinking",
+    "ts": 1795754807.44623,
+    "agent": "worker-2",
+    "step": 1
+  },
+  {
+    "type": "agent_thinking",
+    "ts": 1795754807.4472294,
+    "agent": "worker-3",
+    "step": 1
+  },
+  {
+    "type": "tool_call",
+    "ts": 1795754808.0312374,
+    "agent": "worker-2",
+    "tool": "list_todos",
+    "args": {}
+  },
+  {
+    "type": "tool_result",
+    "ts": 1795754808.0613127,
+    "agent": "worker-2",
+    "tool": "list_todos",
+    "preview": "[{'id': 1, 'text': 'Pay rent', 'done': False}, {'id': 2, 'text': 'Book flights', 'done': False}]"
+  },
+  {
+    "type": "agent_thinking",
+    "ts": 1795754808.0769925,
+    "agent": "worker-2",
+    "step": 2
+  },
+  {
+    "type": "approval_requested",
+    "ts": 1795754808.659598,
+    "approval_id": "b8e24843",
+    "agent": "worker-2",
+    "tool": "complete_todo",
+    "args": {
+      "item_id": 2
+    }
+  },
+  {
+    "type": "tool_call",
+    "ts": 1795754809.0927277,
+    "agent": "worker-1",
+    "tool": "list_todos",
+    "args": {}
+  },
+  {
+    "type": "tool_result",
+    "ts": 1795754809.1090636,
+    "agent": "worker-1",
+    "tool": "list_todos",
+    "preview": "[{'id': 1, 'text': 'Pay rent', 'done': False}, {'id': 2, 'text': 'Book flights', 'done': False}]"
+  },
+  {
+    "type": "agent_thinking",
+    "ts": 1795754809.1090636,
+    "agent": "worker-1",
+    "step": 2
+  },
+  {
+    "type": "approval_requested",
+    "ts": 1795754809.8594213,
+    "approval_id": "85582a32",
+    "agent": "worker-1",
+    "tool": "complete_todo",
+    "args": {
+      "item_id": 1
+    }
+  },
+  {
+    "type": "tool_call",
+    "ts": 1795754810.676157,
+    "agent": "worker-3",
+    "tool": "add_todo",
+    "args": {
+      "text": "Pack clothes (2-3 outfits, underwear, socks, sleepwear)"
+    }
+  },
+  {
+    "type": "tool_result",
+    "ts": 1795754810.6811578,
+    "agent": "worker-3",
+    "tool": "add_todo",
+    "preview": "{'id': 3, 'text': 'Pack clothes (2-3 outfits, underwear, socks, sleepwear)', 'done': False}"
+  },
+  {
+    "type": "tool_call",
+    "ts": 1795754810.7099547,
+    "agent": "worker-3",
+    "tool": "add_todo",
+    "args": {
+      "text": "Pack toiletries (toothbrush, toothpaste, deodorant, skincare, meds)"
+    }
+  },
+  {
+    "type": "tool_result",
+    "ts": 1795754810.7139628,
+    "agent": "worker-3",
+    "tool": "add_todo",
+    "preview": "{'id': 4, 'text': 'Pack toiletries (toothbrush, toothpaste, deodorant, skincare, meds)', 'done': Fal"
+  },
+  {
+    "type": "tool_call",
+    "ts": 1795754810.7179735,
+    "agent": "worker-3",
+    "tool": "add_todo",
+    "args": {
+      "text": "Pack electronics (phone, charger, headphones, power bank)"
+    }
+  },
+  {
+    "type": "tool_result",
+    "ts": 1795754810.7219622,
+    "agent": "worker-3",
+    "tool": "add_todo",
+    "preview": "{'id': 5, 'text': 'Pack electronics (phone, charger, headphones, power bank)', 'done': False}"
+  },
+  {
+    "type": "tool_call",
+    "ts": 1795754810.7294843,
+    "agent": "worker-3",
+    "tool": "add_todo",
+    "args": {
+      "text": "Pack travel documents (ID, boarding passes, wallet/cards)"
+    }
+  },
+  {
+    "type": "tool_result",
+    "ts": 1795754810.7344854,
+    "agent": "worker-3",
+    "tool": "add_todo",
+    "preview": "{'id': 6, 'text': 'Pack travel documents (ID, boarding passes, wallet/cards)', 'done': False}"
+  },
+  {
+    "type": "tool_call",
+    "ts": 1795754810.7574868,
+    "agent": "worker-3",
+    "tool": "add_todo",
+    "args": {
+      "text": "Pack extras (weather gear, comfortable shoes, small bag/backpack)"
+    }
+  },
+  {
+    "type": "tool_result",
+    "ts": 1795754810.7615101,
+    "agent": "worker-3",
+    "tool": "add_todo",
+    "preview": "{'id': 7, 'text': 'Pack extras (weather gear, comfortable shoes, small bag/backpack)', 'done': False"
+  },
+  {
+    "type": "agent_thinking",
+    "ts": 1795754810.7894645,
+    "agent": "worker-3",
+    "step": 2
+  },
+  {
+    "type": "task_done",
+    "ts": 1795754811.6549015,
+    "task_id": 3,
+    "agent": "worker-3",
+    "result": "I added a five-item weekend trip packing checklist to the to-do list: clothes, toiletries, electronics, travel documents, and extras. I left the rent and flights items alone, since marking those done is another worker's task."
+  },
+  {
+    "type": "approval_resolved",
+    "ts": 1795754812.665,
+    "approval_id": "b8e24843",
+    "agent": "worker-2",
+    "decision": "approved"
+  },
+  {
+    "type": "tool_call",
+    "ts": 1795754812.7936685,
+    "agent": "worker-2",
+    "tool": "complete_todo",
+    "args": {
+      "item_id": 2
+    }
+  },
+  {
+    "type": "tool_result",
+    "ts": 1795754812.7936685,
+    "agent": "worker-2",
+    "tool": "complete_todo",
+    "preview": "Marked item 2 done"
+  },
+  {
+    "type": "agent_thinking",
+    "ts": 1795754812.7998497,
+    "agent": "worker-2",
+    "step": 3
+  },
+  {
+    "type": "task_done",
+    "ts": 1795754813.5446389,
+    "task_id": 2,
+    "agent": "worker-2",
+    "result": "I marked the \"Book flights\" to-do (ID 2) as done and left the rent item and the packing checklist for the other workers."
+  },
+  {
+    "type": "approval_resolved",
+    "ts": 1795754817.984,
+    "approval_id": "85582a32",
+    "agent": "worker-1",
+    "decision": "approved"
+  },
+  {
+    "type": "tool_call",
+    "ts": 1795754818.1001828,
+    "agent": "worker-1",
+    "tool": "complete_todo",
+    "args": {
+      "item_id": 1
+    }
+  },
+  {
+    "type": "tool_result",
+    "ts": 1795754818.1210153,
+    "agent": "worker-1",
+    "tool": "complete_todo",
+    "preview": "Marked item 1 done"
+  },
+  {
+    "type": "agent_thinking",
+    "ts": 1795754818.1376476,
+    "agent": "worker-1",
+    "step": 3
+  },
+  {
+    "type": "task_done",
+    "ts": 1795754819.4206166,
+    "task_id": 1,
+    "agent": "worker-1",
+    "result": "I marked the \"Pay rent\" to-do (ID 1) as done. I left \"Book flights\" and the packing checklist alone because those are other workers' tasks."
+  },
+  {
+    "type": "lead_status",
+    "ts": 1795754819.4466834,
+    "status": "summarising"
+  },
+  {
+    "type": "run_done",
+    "ts": 1795754821.8811128,
+    "summary": "Your to-do list is updated. The team did three things:\n\n- **Rent:** \"Pay rent\" is marked done.\n- **Flights:** \"Book flights\" is marked done.\n- **Packing:** I added a five-item weekend trip packing checklist.\n\n**Done**\n- Pay rent\n- Book flights\n\n**Still to do**\n- Pack clothes (2-3 outfits, underwear, socks, sleepwear)\n- Pack toiletries (toothbrush, toothpaste, deodorant, skincare, meds)\n- Pack electronics (phone, charger, headphones, power bank)\n- Pack travel documents (ID, boarding passes, wallet/cards)\n- Pack extras (weather gear, comfortable shoes, small bag/backpack)\n\nOnly the five packing items remain."
+  }
+]

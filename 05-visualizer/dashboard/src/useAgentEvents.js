@@ -10,12 +10,24 @@
  * start a run, stop it, and answer approval requests.
  *
  * Reconnects automatically, so you can start the server after the dashboard.
+ *
+ * Demo mode (on the hosted GitHub Pages site, or with ?demo in the address):
+ * no server at all. It loads a recorded run from demo-run.json and replays it.
  */
 
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 
 const SERVER_URL = 'ws://localhost:4000';
 const HTTP_URL = 'http://localhost:4000';
+
+// Demo mode is switched on by the hosted build (VITE_DEMO=true), or locally
+// by adding ?demo to the address, e.g. http://localhost:5173/?demo
+export const IS_DEMO = import.meta.env.VITE_DEMO === 'true'
+  || new URLSearchParams(window.location.search).has('demo');
+
+// Where the recorded demo run lives (the public/ folder). BASE_URL keeps the
+// path right when the site is hosted under /agent-skeleton/ on GitHub Pages.
+const DEMO_RUN_URL = `${import.meta.env.BASE_URL}demo-run.json`;
 
 // Long pauses (e.g. the lead planning) are capped during replay so you
 // aren't left watching nothing happen.
@@ -205,6 +217,7 @@ export default function useAgentEvents(speed = 1) {
   const [replaying, setReplaying] = useState(false);
   const [canReplay, setCanReplay] = useState(false);
   const [serverRunning, setServerRunning] = useState(false); // a dashboard-started run is going
+  const [demoMissing, setDemoMissing] = useState(false);     // demo mode, but no demo-run.json
 
   const runLog = useRef([]);        // every event of the latest run, in order
   const speedRef = useRef(speed);   // read at each step, so speed changes apply mid-replay
@@ -214,8 +227,59 @@ export default function useAgentEvents(speed = 1) {
     speedRef.current = speed;
   }, [speed]);
 
-  // ---- Live connection ----
+  // ---- Replay: feed the recorded events back in with their original gaps ----
+  const replay = useCallback(async () => {
+    const log = runLog.current;
+    if (!log.length) return;
+
+    const token = { cancelled: false, skip: false, wake: null };
+    replayToken.current = token;
+    setReplaying(true);
+
+    const start = log[0].ts;
+    for (let i = 0; i < log.length; i++) {
+      if (i > 0 && !token.skip) {
+        const gap = Math.min((log[i].ts - log[i - 1].ts) * 1000, MAX_REPLAY_GAP_MS);
+        await sleep(gap / speedRef.current, token);
+      }
+      if (token.cancelled) return;
+
+      dispatch({
+        ...log[i],
+        ts: Date.now() / 1000,             // "now", so pulses and bursts animate
+        origTs: log[i].ts,                 // original time, for the event list
+        _replay: true,
+        _elapsed: (log[i].ts - start) * 1000,
+        _speed: speedRef.current,
+      });
+    }
+    if (replayToken.current === token) setReplaying(false);
+  }, []);
+
+  // Jump straight to the end of a replay.
+  const skipReplay = useCallback(() => {
+    const token = replayToken.current;
+    if (!token) return;
+    token.skip = true;
+    token.wake?.();
+  }, []);
+
+  // ---- Demo mode: load the recorded run and play it ----
   useEffect(() => {
+    if (!IS_DEMO) return;
+    fetch(DEMO_RUN_URL)
+      .then((response) => (response.ok ? response.json() : Promise.reject()))
+      .then((events) => {
+        runLog.current = events;
+        setCanReplay(true);
+        replay();
+      })
+      .catch(() => setDemoMissing(true));
+  }, [replay]);
+
+  // ---- Live connection (skipped in demo mode: there's no server) ----
+  useEffect(() => {
+    if (IS_DEMO) return undefined;
     let socket;
     let retryTimer;
     let stopped = false;
@@ -260,43 +324,6 @@ export default function useAgentEvents(speed = 1) {
     };
   }, []);
 
-  // ---- Replay: feed the recorded events back in with their original gaps ----
-  const replay = useCallback(async () => {
-    const log = runLog.current;
-    if (!log.length) return;
-
-    const token = { cancelled: false, skip: false, wake: null };
-    replayToken.current = token;
-    setReplaying(true);
-
-    const start = log[0].ts;
-    for (let i = 0; i < log.length; i++) {
-      if (i > 0 && !token.skip) {
-        const gap = Math.min((log[i].ts - log[i - 1].ts) * 1000, MAX_REPLAY_GAP_MS);
-        await sleep(gap / speedRef.current, token);
-      }
-      if (token.cancelled) return;
-
-      dispatch({
-        ...log[i],
-        ts: Date.now() / 1000,             // "now", so pulses and bursts animate
-        origTs: log[i].ts,                 // original time, for the event list
-        _replay: true,
-        _elapsed: (log[i].ts - start) * 1000,
-        _speed: speedRef.current,
-      });
-    }
-    if (replayToken.current === token) setReplaying(false);
-  }, []);
-
-  // Jump straight to the end of a replay.
-  const skipReplay = useCallback(() => {
-    const token = replayToken.current;
-    if (!token) return;
-    token.skip = true;
-    token.wake?.();
-  }, []);
-
   // ---- Server controls ----
   // POST to the server; throws with the server's error message on failure.
   const post = useCallback(async (urlPath, body = {}) => {
@@ -315,6 +342,17 @@ export default function useAgentEvents(speed = 1) {
   const stopRun = useCallback(() => post('/stop'), [post]);
   const decide = useCallback((approvalId, decision) => post(`/approvals/${approvalId}`, { decision }), [post]);
 
+  // ---- Save the last run as a file (used to make the hosted demo) ----
+  const downloadRun = useCallback(() => {
+    const blob = new Blob([JSON.stringify(runLog.current, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'demo-run.json';
+    link.click();
+    URL.revokeObjectURL(url);
+  }, []);
+
   return { ...state, replay, skipReplay, replaying, canReplay,
-           serverRunning, startRun, stopRun, decide };
+           serverRunning, startRun, stopRun, decide, downloadRun, demoMissing };
 }

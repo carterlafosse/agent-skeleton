@@ -7,13 +7,16 @@
  * the right shows live events, the lead's summary report, or the selected
  * worker. Workers waiting for approval show Approve / Deny on their node.
  * Pop-ups announce when a run finishes, stops or fails.
+ *
+ * In demo mode (the hosted site) there's no server: a recorded run replays,
+ * and New run becomes a link to the repo.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ReactFlow, ReactFlowProvider, Background, Controls, useReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import useAgentEvents, { elapsedMs } from './useAgentEvents';
+import useAgentEvents, { elapsedMs, IS_DEMO } from './useAgentEvents';
 import useNow from './useNow';
 import AgentNode from './components/AgentNode/AgentNode';
 import PulseEdge from './components/PulseEdge/PulseEdge';
@@ -45,6 +48,9 @@ const LEAD_LABELS = {
   stopped: 'Run stopped',
   failed: 'Run failed',
 };
+
+// Set by the GitHub Pages build so the demo can link back to the repo.
+const REPO_URL = import.meta.env.VITE_REPO_URL;
 
 const DEFAULT_GOAL = 'Get me organised for moving apartments next month. '
   + 'Break each part into several concrete to-do items. I\'ve already paid rent, so mark that as done.';
@@ -135,6 +141,7 @@ export default function App() {
   const {
     connected, goal, leadStatus, tasks, events, summary, clock, toolCount, lastTool,
     failure, replay, skipReplay, replaying, canReplay, serverRunning, startRun, stopRun, decide,
+    downloadRun, demoMissing,
   } = run;
 
   const taskList = Object.values(tasks);
@@ -163,6 +170,14 @@ export default function App() {
     }
   }, [leadStatus, failure]);
 
+  // Demo mode with no recorded run: explain how to add one.
+  useEffect(() => {
+    if (demoMissing) {
+      setToast({ variant: 'error', title: 'No demo run yet',
+                 message: 'Save a run with "Save run", then put demo-run.json in dashboard/public/.' });
+    }
+  }, [demoMissing]);
+
   // Show any server error (e.g. the server is offline) as an error pop-up.
   const showError = useCallback((err) => {
     setToast({ variant: 'error', title: 'Something went wrong', message: err.message });
@@ -181,7 +196,7 @@ export default function App() {
         id: 'you',
         type: 'agent',
         position: { x: -NODE_WIDTH / 2, y: 0 },
-        data: { variant: 'boss', title: 'You', subtitle: goal ?? 'Press New run to start' },
+        data: { variant: 'boss', title: 'You', subtitle: goal ?? (IS_DEMO ? 'Loading demo run…' : 'Press New run to start') },
       },
       {
         id: 'lead',
@@ -298,10 +313,14 @@ export default function App() {
     <div className={styles.app}>
       <header className={styles.header}>
         <h1 className={styles.title}>Agent Skeleton</h1>
-        <span className={connected ? styles.live : styles.offline}>
-          <span className={styles.liveDot} />
-          {replaying ? 'Replay' : connected ? 'Live' : 'Server offline'}
-        </span>
+        {IS_DEMO ? (
+          <span className={styles.demo}>Demo · recorded run</span>
+        ) : (
+          <span className={connected ? styles.live : styles.offline}>
+            <span className={styles.liveDot} />
+            {replaying ? 'Replay' : connected ? 'Live' : 'Server offline'}
+          </span>
+        )}
         {goal && <span className={styles.goal} title={goal}>{goal}</span>}
 
         <div className={styles.controls}>
@@ -328,7 +347,21 @@ export default function App() {
             </select>
           </label>
 
-          {serverRunning ? (
+          {/* Save the last run as demo-run.json (to host as the demo). */}
+          {!IS_DEMO && canReplay && !replaying && (
+            <button type="button" className={styles.button} onClick={downloadRun}
+                    title="Download this run as demo-run.json">
+              ⤓ Save run
+            </button>
+          )}
+
+          {IS_DEMO ? (
+            REPO_URL && (
+              <a className={styles.repoLink} href={REPO_URL} target="_blank" rel="noreferrer">
+                Run it yourself ↗
+              </a>
+            )
+          ) : serverRunning ? (
             <button type="button" className={`${styles.button} ${styles.stop}`} onClick={handleStop}>
               ■ Stop
             </button>

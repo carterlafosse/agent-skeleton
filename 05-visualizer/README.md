@@ -54,6 +54,18 @@ Start a run with **▶ New run** in the dashboard (the server runs `main.py` for
 - **Replay.** After a run, **↻ Replay** plays it back with the original timing. **Skip to end** jumps to the finish.
 - **Speed.** The dropdown (0.25× to 2×) sets replay speed, including the particle animations. Live runs always go at the API's real speed.
 
+## Hosted demo (no setup for visitors)
+
+The dashboard has a **demo mode** that needs no server: it replays a recorded run from `dashboard/public/demo-run.json`. The workflow in `.github/workflows/deploy-demo.yml` builds it in demo mode and publishes it to GitHub Pages on every push to `main`.
+
+To make or refresh the demo:
+1. Do a real run from the dashboard, then click **⤓ Save run**. This downloads `demo-run.json`.
+2. Move it into `05-visualizer/dashboard/public/`.
+3. Check it locally at `http://localhost:5173/?demo` (works with the server off).
+4. Commit and push. The site updates in a minute or two.
+
+One-time setup: repo **Settings → Pages → Source: GitHub Actions**.
+
 ## The event contract
 
 The agents and dashboard only agree on these events. Anything that sends them can be visualised.

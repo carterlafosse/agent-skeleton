@@ -48,6 +48,33 @@
   background: rgba(255, 138, 128, 0.12);
 }
 
+.demo {
+  font-size: 12.5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: var(--tool);
+  background: rgba(180, 140, 255, 0.14);
+  white-space: nowrap;
+}
+
+.repoLink {
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: var(--working);
+  color: #08111f;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.repoLink:hover {
+  filter: brightness(1.1);
+}
+
 .liveDot {
   width: 7px;
   height: 7px;
