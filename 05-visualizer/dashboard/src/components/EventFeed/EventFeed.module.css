@@ -48,6 +48,14 @@
 .run_done {
   color: var(--done);
 }
+.approval_requested,
+.approval_resolved {
+  color: var(--waiting);
+}
+.run_stopped,
+.run_failed {
+  color: var(--error);
+}
 .run_started,
 .task_added {
   color: #f0a43a;

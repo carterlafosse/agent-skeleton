@@ -2,8 +2,8 @@
  * WorkerPanel
  *
  * The worker sidebar tab, opened by clicking a worker in the graph: what
- * it's doing right now, its task, a live timeline of everything it has
- * done, and its final result.
+ * it's doing right now (with Approve / Deny if it's waiting on you), its
+ * task, a live timeline of everything it has done, and its final result.
  */
 
 import styles from './WorkerPanel.module.css';
@@ -14,9 +14,12 @@ const KIND_LABELS = {
   tool: 'tool',
   result: 'result',
   done: 'done',
+  approval: 'ask',
+  approved: 'yes',
+  denied: 'no',
 };
 
-export default function WorkerPanel({ task }) {
+export default function WorkerPanel({ task, canDecide, onDecide }) {
   // ---- Render ----
   if (!task) {
     return <p className={styles.hint}>Click a worker in the graph to follow it here.</p>;
@@ -27,7 +30,20 @@ export default function WorkerPanel({ task }) {
       <h2 className={styles.heading}>{task.agent ?? `worker-${task.id}`}</h2>
       <span className={`${styles.status} ${styles[task.status]}`}>{task.status}</span>
 
-      {task.activity && task.status !== 'done' && (
+      {task.approval && canDecide && (
+        <div className={styles.approvalBox}>
+          <span className={styles.approvalLabel}>Waiting for your approval</span>
+          <code className={styles.approvalCall}>{task.approval.label}</code>
+          <div className={styles.approvalButtons}>
+            <button type="button" className={styles.approve}
+                    onClick={() => onDecide(task.approval.id, 'approved')}>Approve</button>
+            <button type="button" className={styles.deny}
+                    onClick={() => onDecide(task.approval.id, 'denied')}>Deny</button>
+          </div>
+        </div>
+      )}
+
+      {task.activity && !task.approval && task.status !== 'done' && (
         <div key={task.activity.text} className={styles.now}>
           <span className={styles.nowLabel}>Right now</span>
           {task.activity.text}

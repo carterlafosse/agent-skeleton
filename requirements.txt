@@ -1,6 +1,7 @@
 # Install everything with:  pip install -r requirements.txt
 # (activate your .venv first so packages stay inside this project)
 
-anthropic        # official SDK for calling the model
-python-dotenv    # loads your API key from the .env file
-requests         # used later by shared/emit.py to send events to the visualizer
+anthropic        # SDK for Claude (PROVIDER=anthropic)
+openai           # SDK used for every other provider (OpenAI, Gemini, DeepSeek, Grok, ...)
+python-dotenv    # loads your settings from the .env file
+requests         # used by shared/emit.py and shared/approval.py to talk to the visualizer

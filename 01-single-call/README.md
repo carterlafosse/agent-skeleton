@@ -66,7 +66,7 @@ No other changes needed. The model can now use it.
 | File | Purpose |
 |---|---|
 | `single_call.py` | This chapter's example |
-| `../shared/llm.py` | `llm()` wrapper around the Anthropic SDK (plus `ask()`, used from Chapter 03) |
+| `../shared/llm.py` | `llm()`: talks to your chosen AI provider (see the main README) |
 | `../shared/tools.py` | Tool registry + example to-do tools |
 
 ## Limitation

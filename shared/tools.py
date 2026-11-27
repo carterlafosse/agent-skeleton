@@ -21,8 +21,12 @@ HANDLERS = {}
 # Used by run_tool() so only one tool runs at a time (see below).
 _lock = threading.Lock()
 
+# Names of tools marked risky=True. In Chapter 05 these can be made to wait
+# for a person to approve them in the dashboard before they run.
+RISKY_TOOLS = set()
 
-def tool(name, description, properties, required=None):
+
+def tool(name, description, properties, required=None, risky=False):
     """
     Decorator that registers a function as a tool.
 
@@ -31,6 +35,8 @@ def tool(name, description, properties, required=None):
                  thing the model knows about your function, so be specific.
     properties   the tool's inputs, as a JSON Schema dict. Use {} for none.
     required     which inputs are mandatory. Defaults to all of them.
+    risky        True for tools that change or delete things. Chapter 05 can
+                 pause these until a person approves them.
     """
     def register(fn):
         TOOLS.append({
@@ -43,6 +49,8 @@ def tool(name, description, properties, required=None):
             },
         })
         HANDLERS[name] = fn
+        if risky:
+            RISKY_TOOLS.add(name)
         return fn          # return the function unchanged so it still works normally
     return register
 
@@ -103,8 +111,11 @@ def add_todo(text):
 
 # The input is named item_id rather than id, because id is a built-in
 # Python function and shadowing it can cause subtle bugs.
+# risky=True: marking something done changes your data, so in Chapter 05
+# this can require a person's approval first.
 @tool("complete_todo", "Mark a to-do item as done by its ID.",
-      {"item_id": {"type": "integer", "description": "The item's ID"}})
+      {"item_id": {"type": "integer", "description": "The item's ID"}},
+      risky=True)
 def complete_todo(item_id):
     for t in TODOS:
         if t["id"] == item_id:

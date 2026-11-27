@@ -3,9 +3,10 @@
  *
  * The dashboard page. The graph (you -> lead -> workers -> tools) fills the
  * screen. A slim header holds the run stats, replay controls, speed, and the
- * Panels menu. A closable, resizable, tabbed sidebar on the right shows live events,
- * the lead's summary report, or the selected worker. When the run finishes,
- * a pop-up offers to open the summary report.
+ * Panels menu, plus New run / Stop. A closable, resizable, tabbed sidebar on
+ * the right shows live events, the lead's summary report, or the selected
+ * worker. Workers waiting for approval show Approve / Deny on their node.
+ * Pop-ups announce when a run finishes, stops or fails.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -22,6 +23,7 @@ import EventFeed from './components/EventFeed/EventFeed';
 import SummaryPanel from './components/SummaryPanel/SummaryPanel';
 import WorkerPanel from './components/WorkerPanel/WorkerPanel';
 import Toast from './components/Toast/Toast';
+import RunComposer from './components/RunComposer/RunComposer';
 import styles from './App.module.css';
 
 // Custom node and edge types. Defined outside the component so React Flow
@@ -40,7 +42,12 @@ const LEAD_LABELS = {
   delegating: 'Workers running',
   summarising: 'Writing summary',
   done: 'Run complete',
+  stopped: 'Run stopped',
+  failed: 'Run failed',
 };
+
+const DEFAULT_GOAL = 'Get me organised for moving apartments next month. '
+  + 'Break each part into several concrete to-do items. I\'ve already paid rent, so mark that as done.';
 
 // mm:ss for the run timer.
 function formatElapsed(ms) {
@@ -120,14 +127,14 @@ export default function App() {
   const [tabs, setTabs] = useState(['events']);   // open sidebar tabs, in order
   const [activeTab, setActiveTab] = useState('events');
   const [selectedId, setSelectedId] = useState(null); // worker shown in the worker tab
-  const [showToast, setShowToast] = useState(false);
+  const [toast, setToast] = useState(null); // { variant, title, message, action? }
   // Sidebar starts at just over a quarter of the screen; drag its edge to resize.
   const [sidebarWidth, setSidebarWidth] = useState(() => Math.round(window.innerWidth * 0.27));
 
   // ---- Data ----
   const {
     connected, goal, leadStatus, tasks, events, summary, clock, toolCount, lastTool,
-    replay, skipReplay, replaying, canReplay,
+    failure, replay, skipReplay, replaying, canReplay, serverRunning, startRun, stopRun, decide,
   } = run;
 
   const taskList = Object.values(tasks);
@@ -137,13 +144,29 @@ export default function App() {
   const selectedTask = tasks[selectedId] ?? null;
   const sidebarOpen = tabs.length > 0;
   const workerTabOpen = tabs.includes('worker') && activeTab === 'worker';
+  const waitingCount = taskList.filter((t) => t.approval).length;
 
-  // Pop up the summary report when a run (or replay) finishes; hide it when a
-  // new one starts.
+  // Pop-ups for how the run ended; cleared when a new run starts.
   useEffect(() => {
-    if (leadStatus === 'done') setShowToast(true);
-    if (leadStatus === 'planning') setShowToast(false);
-  }, [leadStatus]);
+    if (leadStatus === 'planning') setToast(null);
+    if (leadStatus === 'done') {
+      setToast({ variant: 'success', title: 'Lead summary report',
+                 message: 'The team has finished. Your report is ready.',
+                 action: { label: 'Open report', tab: 'summary' } });
+    }
+    if (leadStatus === 'stopped') {
+      setToast({ variant: 'info', title: 'Run stopped', message: 'You stopped the run. Work done so far is kept.' });
+    }
+    if (leadStatus === 'failed') {
+      setToast({ variant: 'error', title: 'Run failed', message: failure ?? 'Check the server terminal for details.',
+                 action: { label: 'Show events', tab: 'events' } });
+    }
+  }, [leadStatus, failure]);
+
+  // Show any server error (e.g. the server is offline) as an error pop-up.
+  const showError = useCallback((err) => {
+    setToast({ variant: 'error', title: 'Something went wrong', message: err.message });
+  }, []);
 
   // Build the graph from the run state. Layout is simple maths: you, the lead
   // and the tools centred, workers spread evenly in a row in the middle.
@@ -158,7 +181,7 @@ export default function App() {
         id: 'you',
         type: 'agent',
         position: { x: -NODE_WIDTH / 2, y: 0 },
-        data: { variant: 'boss', title: 'You', subtitle: goal ?? 'Run python main.py to start' },
+        data: { variant: 'boss', title: 'You', subtitle: goal ?? 'Press New run to start' },
       },
       {
         id: 'lead',
@@ -167,7 +190,7 @@ export default function App() {
         data: {
           variant: 'lead',
           title: 'Lead',
-          status: leadStatus === 'done' ? 'done' : leadStatus === 'idle' ? 'pending' : 'working',
+          status: { done: 'done', idle: 'pending', stopped: 'stopped', failed: 'stopped' }[leadStatus] ?? 'working',
           activity: leadStatus === 'idle' ? null
             : { kind: leadThinking ? 'thinking' : 'info', text: LEAD_LABELS[leadStatus] },
           badge: list.length ? `${list.filter((t) => t.status === 'done').length}/${list.length} done` : null,
@@ -182,8 +205,14 @@ export default function App() {
           variant: 'worker',
           title: task.agent ?? `worker-${task.id}`,
           subtitle: task.description,
-          status: task.status,
+          // Amber "waiting" while it needs your approval.
+          status: task.approval ? 'waiting' : task.status,
           activity: task.activity,
+          // Approve / Deny buttons on the node (hidden during replays).
+          approval: task.approval && !replaying ? {
+            onApprove: () => decide(task.approval.id, 'approved').catch(showError),
+            onDeny: () => decide(task.approval.id, 'denied').catch(showError),
+          } : null,
           badge: task.steps ? `step ${task.steps}` : null,
           chips: task.log.filter((e) => e.kind === 'tool').slice(-3)
             .map((e) => ({ key: e.at, label: e.tool })),
@@ -217,7 +246,8 @@ export default function App() {
     ];
 
     return { nodes, edges };
-  }, [tasks, goal, leadStatus, toolCount, lastTool, selectedId, workerTabOpen, now, speed]);
+  }, [tasks, goal, leadStatus, toolCount, lastTool, selectedId, workerTabOpen, now, speed,
+      replaying, decide, showError]);
 
   // Sidebar tab definitions: label + content for each tab id.
   const tabContent = {
@@ -225,7 +255,13 @@ export default function App() {
     summary: { label: 'Lead summary', body: <SummaryPanel summary={summary} goal={goal} /> },
     worker: {
       label: selectedTask?.agent ?? (selectedTask ? `worker-${selectedTask.id}` : 'Worker'),
-      body: <WorkerPanel task={selectedTask} />,
+      body: (
+        <WorkerPanel
+          task={selectedTask}
+          canDecide={!replaying}
+          onDecide={(id, decision) => decide(id, decision).catch(showError)}
+        />
+      ),
     },
   };
 
@@ -248,9 +284,13 @@ export default function App() {
     openTab('worker');
   }
 
-  function handleOpenReport() {
-    setShowToast(false);
-    openTab('summary');
+  function handleToastAction() {
+    if (toast?.action) openTab(toast.action.tab);
+    setToast(null);
+  }
+
+  function handleStop() {
+    stopRun().catch(showError);
   }
 
   // ---- Render ----
@@ -265,6 +305,9 @@ export default function App() {
         {goal && <span className={styles.goal} title={goal}>{goal}</span>}
 
         <div className={styles.controls}>
+          {waitingCount > 0 && !replaying && (
+            <span className={styles.waiting}>{waitingCount} waiting for approval</span>
+          )}
           <span className={styles.stat}>{LEAD_LABELS[leadStatus]}</span>
           <span className={styles.stat}>{toolCount} tool calls</span>
           <span className={styles.timer}>{formatElapsed(elapsed)}</span>
@@ -284,6 +327,18 @@ export default function App() {
               {SPEEDS.map((s) => <option key={s} value={s}>{s}×</option>)}
             </select>
           </label>
+
+          {serverRunning ? (
+            <button type="button" className={`${styles.button} ${styles.stop}`} onClick={handleStop}>
+              ■ Stop
+            </button>
+          ) : (
+            <RunComposer
+              defaultGoal={goal ?? DEFAULT_GOAL}
+              disabled={!connected}
+              onStart={(newGoal, mode) => startRun(newGoal, mode)}
+            />
+          )}
 
           <PanelMenu openTabs={tabs} onSelect={openTab} />
         </div>
@@ -314,13 +369,14 @@ export default function App() {
         )}
       </div>
 
-      {showToast && summary && (
+      {toast && (
         <Toast
-          title="Lead summary report"
-          message="The team has finished. Your report is ready."
-          actionLabel="Open report"
-          onAction={handleOpenReport}
-          onClose={() => setShowToast(false)}
+          variant={toast.variant}
+          title={toast.title}
+          message={toast.message}
+          actionLabel={toast.action?.label}
+          onAction={handleToastAction}
+          onClose={() => setToast(null)}
         />
       )}
     </div>

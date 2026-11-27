@@ -4,6 +4,7 @@
  * One box in the graph: you, the lead, a worker, or the shared tools.
  * Shows a status icon, a name, a live "what it's doing right now" line,
  * and chips for the tools it used most recently. Changes animate in.
+ * Workers waiting for approval also show Approve / Deny buttons.
  */
 
 import { Handle, Position } from '@xyflow/react';
@@ -24,12 +25,14 @@ function ThinkingDots() {
 function StatusIcon({ status }) {
   if (status === 'working') return <span className={styles.spinner} aria-label="working" />;
   if (status === 'done') return <span className={styles.tick} aria-label="done">✓</span>;
+  if (status === 'waiting') return <span className={styles.pause} aria-label="waiting for approval">!</span>;
+  if (status === 'stopped') return <span className={styles.stopIcon} aria-label="stopped" />;
   return <span className={styles.ring} aria-label="waiting" />;
 }
 
 export default function AgentNode({ data, selected }) {
   // ---- Data ----
-  const { variant, title, subtitle, status, activity, badge, chips, flashKey } = data;
+  const { variant, title, subtitle, status, activity, badge, chips, flashKey, approval } = data;
   const classes = [
     styles.node,
     styles[variant],
@@ -68,6 +71,20 @@ export default function AgentNode({ data, selected }) {
           </div>
         )}
       </div>
+
+      {/* stopPropagation so clicking a button doesn't also select the node. */}
+      {approval && (
+        <div className={styles.approval}>
+          <button type="button" className={styles.approve}
+                  onClick={(e) => { e.stopPropagation(); approval.onApprove(); }}>
+            Approve
+          </button>
+          <button type="button" className={styles.deny}
+                  onClick={(e) => { e.stopPropagation(); approval.onDeny(); }}>
+            Deny
+          </button>
+        </div>
+      )}
 
       <Handle type="source" position={Position.Bottom} className={styles.handle} />
     </div>

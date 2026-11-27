@@ -6,7 +6,8 @@
  * worker's live activity and history, tool-call counts, and the summary.
  *
  * It also records every event of the latest run, so the whole run can be
- * replayed afterwards at any speed.
+ * replayed afterwards at any speed, and exposes controls for the server:
+ * start a run, stop it, and answer approval requests.
  *
  * Reconnects automatically, so you can start the server after the dashboard.
  */
@@ -14,6 +15,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 
 const SERVER_URL = 'ws://localhost:4000';
+const HTTP_URL = 'http://localhost:4000';
 
 // Long pauses (e.g. the lead planning) are capped during replay so you
 // aren't left watching nothing happen.
@@ -22,10 +24,11 @@ const MAX_REPLAY_GAP_MS = 3000;
 const initialState = {
   connected: false,
   goal: null,
-  leadStatus: 'idle',  // idle | planning | delegating | summarising | done
+  leadStatus: 'idle',  // idle | planning | delegating | summarising | done | stopped | failed
   tasks: {},           // task_id -> task (see newTask below)
   events: [],          // newest first, capped at 150
   summary: null,
+  failure: null,       // error message if the run failed
   clock: null,         // run timer: { base, at, scale } (see elapsedMs below)
   toolCount: 0,        // tool calls across the whole team
   lastTool: null,      // { agent, label, at } for the Tools node
@@ -43,13 +46,14 @@ function newTask(event) {
   return {
     id: event.task_id,
     description: event.description,
-    status: 'pending',   // pending | working | done
+    status: 'pending',   // pending | working | done | stopped
     agent: null,
     steps: 0,
     activity: null,      // what it's doing right now: { kind, text }
     log: [],             // full history for the worker panel
     toolCalls: 0,
     lastToolAt: 0,
+    approval: null,      // { id, label } while waiting for a person's decision
     result: null,
   };
 }
@@ -75,12 +79,14 @@ export function elapsedMs(clock, now) {
 function nextClock(state, event, at) {
   if (event._replay) {
     // Replayed events carry their original elapsed time and the playback speed.
-    return event.type === 'run_done'
+    return ['run_done', 'run_stopped', 'run_failed'].includes(event.type)
       ? { base: event._elapsed, at: null, scale: 1 }
       : { base: event._elapsed, at: Date.now(), scale: event._speed };
   }
   if (event.type === 'run_started') return { base: 0, at, scale: 1 };
-  if (event.type === 'run_done') return { base: elapsedMs(state.clock, at), at: null, scale: 1 };
+  if (['run_done', 'run_stopped', 'run_failed'].includes(event.type)) {
+    return { base: elapsedMs(state.clock, at), at: null, scale: 1 };
+  }
   return state.clock;
 }
 
@@ -147,8 +153,39 @@ function reducer(state, event) {
         { status: 'done', result: event.result, activity: { kind: 'done', text: 'Finished' } },
         { kind: 'done', text: 'Finished', at }) };
 
+    case 'approval_requested': {
+      const task = taskForAgent(state, event.agent);
+      if (!task) return { ...state, events, clock };
+      const label = `${event.tool}(${shortArgs(event.args)})`;
+      return { ...state, events, clock, tasks: patchTask(state, task.id,
+        { approval: { id: event.approval_id, label },
+          activity: { kind: 'approval', text: `Needs approval: ${label}` } },
+        { kind: 'approval', text: `Asked to run ${label}`, at }) };
+    }
+
+    case 'approval_resolved': {
+      const task = Object.values(state.tasks).find((t) => t.approval?.id === event.approval_id);
+      if (!task) return { ...state, events, clock };
+      const approved = event.decision === 'approved';
+      return { ...state, events, clock, tasks: patchTask(state, task.id,
+        { approval: null,
+          activity: { kind: approved ? 'tool' : 'denied', text: `${approved ? 'Approved' : 'Denied'}: ${task.approval.label}` } },
+        { kind: approved ? 'approved' : 'denied', text: approved ? 'Approved by you' : 'Denied by you', at }) };
+    }
+
     case 'run_done':
       return { ...state, events, clock, summary: event.summary, leadStatus: 'done' };
+
+    case 'run_stopped':
+    case 'run_failed': {
+      // Anything still in progress stops where it is.
+      const tasks = Object.fromEntries(Object.entries(state.tasks).map(([id, t]) => [id,
+        t.status === 'done' ? t : { ...t, status: 'stopped', approval: null,
+                                     activity: { kind: 'denied', text: 'Stopped' } }]));
+      return { ...state, events, clock, tasks,
+               leadStatus: event.type === 'run_stopped' ? 'stopped' : 'failed',
+               failure: event.type === 'run_failed' ? event.message : null };
+    }
 
     default:
       return { ...state, events, clock };
@@ -167,6 +204,7 @@ export default function useAgentEvents(speed = 1) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [replaying, setReplaying] = useState(false);
   const [canReplay, setCanReplay] = useState(false);
+  const [serverRunning, setServerRunning] = useState(false); // a dashboard-started run is going
 
   const runLog = useRef([]);        // every event of the latest run, in order
   const speedRef = useRef(speed);   // read at each step, so speed changes apply mid-replay
@@ -188,6 +226,12 @@ export default function useAgentEvents(speed = 1) {
       socket.onmessage = (msg) => {
         const event = JSON.parse(msg.data);
 
+        // Status updates from the server aren't part of the run.
+        if (event.type === '_server') {
+          setServerRunning(event.running);
+          return;
+        }
+
         // Record the run for replays. A new run cancels any replay in progress.
         if (event.type === 'run_started') {
           runLog.current = [event];
@@ -197,7 +241,7 @@ export default function useAgentEvents(speed = 1) {
         } else {
           runLog.current.push(event);
         }
-        if (event.type === 'run_done') setCanReplay(true);
+        if (['run_done', 'run_stopped', 'run_failed'].includes(event.type)) setCanReplay(true);
 
         dispatch(event);
       };
@@ -253,5 +297,24 @@ export default function useAgentEvents(speed = 1) {
     token.wake?.();
   }, []);
 
-  return { ...state, replay, skipReplay, replaying, canReplay };
+  // ---- Server controls ----
+  // POST to the server; throws with the server's error message on failure.
+  const post = useCallback(async (urlPath, body = {}) => {
+    const response = await fetch(`${HTTP_URL}${urlPath}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error ?? `Server error ${response.status}`);
+    }
+  }, []);
+
+  const startRun = useCallback((goal, approvalMode) => post('/run', { goal, approvalMode }), [post]);
+  const stopRun = useCallback(() => post('/stop'), [post]);
+  const decide = useCallback((approvalId, decision) => post(`/approvals/${approvalId}`, { decision }), [post]);
+
+  return { ...state, replay, skipReplay, replaying, canReplay,
+           serverRunning, startRun, stopRun, decide };
 }

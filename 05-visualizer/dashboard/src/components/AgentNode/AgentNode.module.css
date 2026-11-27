@@ -87,6 +87,49 @@
 .activity.info {
   color: var(--muted);
 }
+.activity.approval {
+  color: var(--waiting);
+}
+.activity.denied {
+  color: var(--error);
+}
+
+/* ---- Approve / Deny ---- */
+
+.approval {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  animation: fadeUp 0.3s ease;
+}
+
+.approve,
+.deny {
+  flex: 1;
+  height: 32px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.approve {
+  border: none;
+  background: var(--done);
+  color: #0b1a0f;
+}
+
+.deny {
+  border: 1px solid #5a2a2a;
+  background: transparent;
+  color: var(--error);
+}
+
+.approve:hover,
+.deny:hover {
+  filter: brightness(1.15);
+}
 
 /* ---- Tool chips ---- */
 
@@ -133,6 +176,28 @@
   flex-shrink: 0;
 }
 
+.pause {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  background: var(--waiting);
+  color: #1a1206;
+  flex-shrink: 0;
+  animation: pop 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.6);
+}
+
+.stopIcon {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--error);
+  flex-shrink: 0;
+}
+
 .ring {
   width: 10px;
   height: 10px;
@@ -175,6 +240,17 @@
 
 .done {
   border-color: #2a5a35;
+}
+
+.waiting {
+  opacity: 1;
+  border-color: var(--waiting);
+  animation: enter 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2), glowWaiting 1.4s ease-in-out infinite;
+}
+
+.stopped {
+  opacity: 0.7;
+  border-color: #5a2a2a;
 }
 
 /* ---- Variants ---- */
@@ -254,6 +330,16 @@
   }
   50% {
     box-shadow: 0 0 22px 2px rgba(76, 154, 255, 0.35);
+  }
+}
+
+@keyframes glowWaiting {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(240, 164, 58, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 26px 3px rgba(240, 164, 58, 0.45);
   }
 }
 

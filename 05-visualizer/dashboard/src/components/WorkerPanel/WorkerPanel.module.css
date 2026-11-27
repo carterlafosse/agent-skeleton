@@ -118,3 +118,73 @@
     transform: translateY(4px);
   }
 }
+
+/* ---- Approval ---- */
+
+.approvalBox {
+  margin-top: 16px;
+  padding: 12px 13px;
+  border-radius: 10px;
+  border: 1px solid var(--waiting);
+  background: rgba(240, 164, 58, 0.08);
+}
+
+.approvalLabel {
+  display: block;
+  font-size: 11px;
+  color: var(--waiting);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.approvalCall {
+  display: block;
+  margin: 6px 0 10px;
+  font-size: 12.5px;
+  word-break: break-word;
+}
+
+.approvalButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.approve,
+.deny {
+  flex: 1;
+  height: 34px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.approve {
+  border: none;
+  background: var(--done);
+  color: #0b1a0f;
+}
+
+.deny {
+  border: 1px solid #5a2a2a;
+  background: transparent;
+  color: var(--error);
+}
+
+.approval .entryText {
+  color: var(--waiting);
+}
+
+.approved .entryText {
+  color: var(--done);
+}
+
+.denied .entryText {
+  color: var(--error);
+}
+
+.status.waiting,
+.status.stopped {
+  color: var(--error);
+}

@@ -41,6 +41,27 @@
   margin: 3px 0 10px;
   font-size: 13px;
   color: var(--muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ---- Variants ---- */
+
+.error {
+  border-color: #5a2a2a;
+}
+.error .icon,
+.error .action {
+  background: var(--error);
+  color: #2a0f0c;
+}
+
+.info {
+  border-color: var(--border);
+}
+.info .icon {
+  background: var(--muted);
+  color: var(--bg);
 }
 
 .action {

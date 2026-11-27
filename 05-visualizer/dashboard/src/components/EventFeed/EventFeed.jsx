@@ -18,7 +18,11 @@ function describe(event) {
     case 'tool_call':      return `${event.agent} → ${event.tool}(${JSON.stringify(event.args)})`;
     case 'tool_result':    return `${event.agent} ← ${event.preview}`;
     case 'task_done':      return `${event.agent} finished task ${event.task_id}`;
+    case 'approval_requested': return `${event.agent} asks to run ${event.tool}(${JSON.stringify(event.args)})`;
+    case 'approval_resolved':  return `You ${event.decision} ${event.agent}'s request`;
     case 'run_done':       return 'Run finished, summary ready';
+    case 'run_stopped':    return 'Run stopped by you';
+    case 'run_failed':     return `Run failed: ${event.message}`;
     default:               return event.type;
   }
 }

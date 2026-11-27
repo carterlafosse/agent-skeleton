@@ -39,9 +39,9 @@ Use three terminals, all starting from the project root:
 |---|---|---|
 | 1 | `cd 05-visualizer/server` then `npm start` | Starts the event server |
 | 2 | `cd 05-visualizer/dashboard` then `npm run dev` | Starts the dashboard. Open the URL it prints (usually http://localhost:5173) |
-| 3 | `python main.py` (with `.venv` active) | Runs the team |
+| 3 | Optional: `python main.py` (with `.venv` active) | Runs the team from a terminal instead of the dashboard |
 
-`main.py` runs the team with `parallel=True`, so every worker lights up at once.
+Start a run with **▶ New run** in the dashboard (the server runs `main.py` for you), or run `python main.py "your goal"` in a terminal. Either way the team runs with `parallel=True`, so every worker lights up at once.
 
 ## Using the dashboard
 
@@ -49,6 +49,8 @@ Use three terminals, all starting from the project root:
 - **Sidebar tabs (right).** Live events, the lead's summary report, and the worker you clicked. Each tab has an **×**; close them all and the graph takes the whole screen. Drag the sidebar's left edge to resize it.
 - **Panels menu (top right).** Reopen Live events or Lead summary at any time.
 - **Summary pop-up.** When a run finishes, a card appears top right. **Open report** opens the summary tab.
+- **New run / Stop.** Type a goal, choose what needs your approval, and start the team. **■ Stop** ends a dashboard-started run; work done so far is kept.
+- **Approvals.** Tools marked `risky=True` in `shared/tools.py` (like `complete_todo`) pause the worker: its node turns amber with **Approve / Deny** buttons. A denial goes back to the model as a normal result, so it carries on without that action. With nobody answering, it's denied after 5 minutes. Choose "Every tool call" to approve everything, or "Off" to run freely.
 - **Replay.** After a run, **↻ Replay** plays it back with the original timing. **Skip to end** jumps to the finish.
 - **Speed.** The dropdown (0.25× to 2×) sets replay speed, including the particle animations. Live runs always go at the API's real speed.
 
@@ -65,8 +67,12 @@ The agents and dashboard only agree on these events. Anything that sends them ca
 | `agent_thinking` | worker | `agent`, `step` |
 | `tool_call` | worker | `agent`, `tool`, `args` |
 | `tool_result` | worker | `agent`, `tool`, `preview` |
+| `approval_requested` | worker | `approval_id`, `agent`, `tool`, `args` |
+| `approval_resolved` | server | `approval_id`, `agent`, `decision` |
 | `task_done` | task list | `task_id`, `agent`, `result` |
 | `run_done` | lead | `summary` |
+| `run_stopped` | server | (none) |
+| `run_failed` | server | `message` |
 
 Every event also has `type` and `ts` (timestamp).
 
@@ -75,7 +81,8 @@ Every event also has `type` and `ts` (timestamp).
 | File | Purpose |
 |---|---|
 | `../shared/emit.py` | Sends events from Python. Switches off quietly if the server isn't running |
-| `server/server.js` | Receives events, broadcasts them, and replays the current run to late-opened dashboards |
+| `../shared/approval.py` | Asks the dashboard before risky tool calls; denies if nobody answers |
+| `server/server.js` | Receives events and broadcasts them, replays the current run to late-opened dashboards, starts and stops runs, and relays approvals |
 | `dashboard/src/useAgentEvents.js` | WebSocket connection, reducer that turns events into state, and run recording for replays |
 | `dashboard/src/App.jsx` | Page layout; builds graph nodes and edges from state, keeps the camera fitted |
 | `dashboard/src/useNow.js` | A ticking clock for the run timer and short animations |
@@ -86,7 +93,8 @@ Every event also has `type` and `ts` (timestamp).
 | `dashboard/src/components/SummaryPanel/` | Lead summary tab (renders the report's bold text and bullets) |
 | `dashboard/src/components/WorkerPanel/` | Worker tab: live status and timeline for the clicked worker |
 | `dashboard/src/components/PanelMenu/` | The Panels dropdown |
-| `dashboard/src/components/Toast/` | The "summary ready" pop-up |
+| `dashboard/src/components/Toast/` | Pop-ups: summary ready, run stopped, run failed |
+| `dashboard/src/components/RunComposer/` | The New run button and goal form |
 
 ## Why it works this way
 
